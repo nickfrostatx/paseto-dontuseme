@@ -1,6 +1,6 @@
 use crate::encoding::{b64_decode, b64_encode, pre_auth_encode};
 use crate::error::{Error, Result};
-use crate::keys::{AsymmetricPublicKey, AsymmetricSecretKey, SymmetricKey};
+use crate::keys::{SymmetricKey};
 use blake2::digest::{consts::U32, consts::U56, FixedOutput, Mac};
 use blake2::Blake2bMac;
 use chacha20::cipher::{KeyIvInit, StreamCipher};
@@ -37,7 +37,7 @@ impl ProtocolVersion for V4 {
 
         let mut nonce = [0; Self::NONCE_LEN];
         nonce.copy_from_slice(message.get(..Self::NONCE_LEN).ok_or(Error::InvalidToken)?);
-        let mut ciphertext = message
+        let ciphertext = message
             .get(Self::NONCE_LEN..message.len() - Self::AUTH_TAG_LEN)
             .ok_or(Error::InvalidToken)?;
         let provided_auth_tag = message
@@ -46,7 +46,7 @@ impl ProtocolVersion for V4 {
 
         let (enc_key, enc_nonce, auth_key) = Self::split_key(key, &nonce);
 
-        let correct_auth_tag = Self::local_auth_tag(&auth_key, &nonce, &ciphertext, &footer, implicit);
+        let correct_auth_tag = Self::local_auth_tag(&auth_key, &nonce, ciphertext, &footer, implicit);
 
         if !bool::from(provided_auth_tag.ct_eq(&correct_auth_tag)) {
             return Err(Error::InvalidToken);
@@ -121,9 +121,9 @@ impl V4 {
         footer: &[u8],
         implicit: &[u8],
     ) -> Vec<u8> {
-        let pre_auth = pre_auth_encode(&[b"v4.local.", &nonce, &ciphertext, footer, implicit]);
+        let pre_auth = pre_auth_encode(&[b"v4.local.", nonce, ciphertext, footer, implicit]);
         let mut auth_tag_hasher =
-            Blake2bMac::<U32>::new_with_salt_and_personal(&auth_key, &[], &[]).unwrap();
+            Blake2bMac::<U32>::new_with_salt_and_personal(auth_key, &[], &[]).unwrap();
         auth_tag_hasher.update(&pre_auth);
         auth_tag_hasher.finalize_fixed().to_vec()
     }
@@ -153,7 +153,7 @@ impl V4 {
 
 #[cfg(test)]
 mod tests {
-    use crate::keys::{AsymmetricPublicKey, AsymmetricSecretKey, SymmetricKey};
+    use crate::keys::{SymmetricKey};
     use crate::protocol::{ProtocolVersion, V4};
     use serde::{self, Deserialize};
 
@@ -172,7 +172,7 @@ mod tests {
 
             let token = V4::encrypt_with_nonce(
                 payload,
-                test.nonce.clone(),
+                test.nonce,
                 &key,
                 test.footer.as_bytes(),
                 test.implicit_assertion.as_bytes(),
@@ -181,7 +181,7 @@ mod tests {
         }
     }
 
-    fn test_public(test: &PublicTest) {}
+    fn test_public(_test: &PublicTest) {}
 
     #[derive(Deserialize)]
     struct TestVectors {
