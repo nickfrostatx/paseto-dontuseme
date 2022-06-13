@@ -1,6 +1,6 @@
 use crate::encoding::{b64_decode, b64_encode, pre_auth_encode};
 use crate::error::{Error, Result};
-use crate::keys::{SymmetricKey};
+use crate::keys::SymmetricKey;
 use blake2::digest::{consts::U32, consts::U56, FixedOutput, Mac};
 use blake2::Blake2bMac;
 use chacha20::cipher::{KeyIvInit, StreamCipher};
@@ -46,7 +46,8 @@ impl ProtocolVersion for V4 {
 
         let (enc_key, enc_nonce, auth_key) = Self::split_key(key, &nonce);
 
-        let correct_auth_tag = Self::local_auth_tag(&auth_key, &nonce, ciphertext, &footer, implicit);
+        let correct_auth_tag =
+            Self::local_auth_tag(&auth_key, &nonce, ciphertext, &footer, implicit);
 
         if !bool::from(provided_auth_tag.ct_eq(&correct_auth_tag)) {
             return Err(Error::InvalidToken);
@@ -153,7 +154,7 @@ impl V4 {
 
 #[cfg(test)]
 mod tests {
-    use crate::keys::{SymmetricKey};
+    use crate::keys::SymmetricKey;
     use crate::protocol::{ProtocolVersion, V4};
     use serde::{self, Deserialize};
 
