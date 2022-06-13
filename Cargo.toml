@@ -4,7 +4,11 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-rand_core = { version = "0.6", features = ["getrandom"] }
+blake2 = "0.10"
+chacha20 = "0.9"
+ct-codecs = "1.1"
+rand_core = { version = "0.6", default-features = false, features = ["getrandom"] }
+subtle = "2.4"
 
 [dev-dependencies]
 hex = { version = "0.4", features = ["serde"] }
